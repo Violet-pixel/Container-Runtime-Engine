@@ -2,7 +2,7 @@ bin/
 node_modules/
 coverage/
 *.log
-!github/rotina/registro.log
+!.github/rotina/registro.log
 *.tar
 *.tar.gz
 .env
