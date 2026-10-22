@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '.github/rotina/**'
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Interface
+        run: |
+          cd web
+          npm ci
+          npm run build
+      - name: Verificação
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+      - name: Testes
+        run: go test -race ./...
+      - name: Binário
+        run: CGO_ENABLED=1 go build -trimpath -ldflags "-s -w" -o bin/silo ./cmd/silo
+      - name: Testes ponta a ponta
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq iproute2 util-linux iptables
+          ./scripts/mkrootfs.sh rootfs.tar.gz
+          sudo -E env "PATH=$PATH" SILO_E2E=1 SILO_E2E_ROOTFS="$PWD/rootfs.tar.gz" go test -count=1 -v ./test/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: silo-linux-amd64
+          path: bin/silo

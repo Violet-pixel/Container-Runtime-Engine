@@ -1,0 +1,17 @@
+[Unit]
+Description=Silo, API e interface web
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=SILO_ROOT=/var/lib/silo
+Environment=SILO_ADDR=127.0.0.1:7070
+EnvironmentFile=-/etc/silo/silo.env
+ExecStart=/usr/local/bin/silo serve
+KillMode=process
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Silo API
+  version: 1.0.0
+  description: API REST do Silo, runtime de containers com namespaces e cgroups. Quando o servidor sobe com token, envie Authorization Bearer.
+servers:
+  - url: http://127.0.0.1:7070
+security:
+  - bearer: []
+paths:
+  /healthz:
+    get:
+      summary: Saúde do servidor
+      security: []
+      responses:
+        "200": { description: OK }
+  /api/v1/info:
+    get:
+      summary: Informações do host e contadores
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/SystemInfo" } } } }
+  /api/v1/containers:
+    get:
+      summary: Lista containers
+      parameters:
+        - { name: all, in: query, schema: { type: boolean, default: true } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Container" } } } } }
+    post:
+      summary: Cria (e por padrão inicia) um container
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateRequest" } } }
+      responses:
+        "201": { description: Criado }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/containers/prune:
+    post:
+      summary: Remove todos os containers parados
+      responses:
+        "200": { description: OK }
+  /api/v1/containers/{id}:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    get:
+      summary: Detalhes do container, caminhos e namespaces
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Remove o container
+      parameters:
+        - { name: force, in: query, schema: { type: boolean } }
+      responses:
+        "200": { description: OK }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/containers/{id}/start:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    post: { summary: Inicia, responses: { "200": { description: OK }, "409": { $ref: "#/components/responses/Error" } } }
+  /api/v1/containers/{id}/stop:
+    parameters: [ { $ref: "#/components/parameters/Id" }, { name: t, in: query, schema: { type: integer } } ]
+    post: { summary: Para com SIGTERM e depois SIGKILL, responses: { "200": { description: OK } } }
+  /api/v1/containers/{id}/restart:
+    parameters: [ { $ref: "#/components/parameters/Id" }, { name: t, in: query, schema: { type: integer } } ]
+    post: { summary: Reinicia, responses: { "200": { description: OK } } }
+  /api/v1/containers/{id}/kill:
+    parameters: [ { $ref: "#/components/parameters/Id" }, { name: signal, in: query, schema: { type: integer, default: 9 } } ]
+    post: { summary: Envia um sinal, responses: { "200": { description: OK } } }
+  /api/v1/containers/{id}/exec:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    post:
+      summary: Executa um comando curto e devolve a saída (até 60 s e 1 MB)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cmd: { type: array, items: { type: string } }
+                env: { type: array, items: { type: string } }
+                workDir: { type: string }
+                user: { type: string }
+      responses:
+        "200": { description: OK }
+  /api/v1/containers/{id}/logs:
+    parameters: [ { $ref: "#/components/parameters/Id" }, { name: tail, in: query, schema: { type: integer, default: 500 } } ]
+    get: { summary: Últimas linhas da saída, responses: { "200": { description: texto } } }
+  /api/v1/containers/{id}/logs/stream:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    get: { summary: WebSocket com a saída em tempo real, responses: { "101": { description: Upgrade } } }
+  /api/v1/containers/{id}/stats:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    get: { summary: CPU, memória, processos e rede, responses: { "200": { description: OK } } }
+  /api/v1/containers/{id}/top:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    get: { summary: Processos dentro do cgroup, responses: { "200": { description: OK } } }
+  /api/v1/stats:
+    get: { summary: Estatísticas de todos os containers em execução, responses: { "200": { description: OK } } }
+  /api/v1/metrics:
+    get: { summary: Métricas no formato Prometheus, responses: { "200": { description: OK } } }
+  /api/v1/images:
+    get: { summary: Lista imagens, responses: { "200": { description: OK } } }
+  /api/v1/images/pull:
+    post:
+      summary: Baixa uma imagem; responde em NDJSON com o progresso
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { reference: { type: string, example: "alpine:3.20" } } } } }
+      responses:
+        "200": { description: linhas JSON com stage, current e total }
+  /api/v1/images/import:
+    post:
+      summary: Importa um rootfs em tar ou tar.gz enviado no corpo
+      parameters:
+        - { name: reference, in: query, required: true, schema: { type: string } }
+        - { name: cmd, in: query, schema: { type: string } }
+      requestBody:
+        content: { application/octet-stream: { schema: { type: string, format: binary } } }
+      responses:
+        "201": { description: Criada }
+  /api/v1/images/{id}:
+    parameters: [ { $ref: "#/components/parameters/Id" } ]
+    get: { summary: Detalhes da imagem, responses: { "200": { description: OK } } }
+    delete: { summary: Remove a imagem, responses: { "200": { description: OK }, "409": { $ref: "#/components/responses/Error" } } }
+  /api/v1/events:
+    get:
+      summary: Histórico de eventos
+      parameters:
+        - { name: after, in: query, schema: { type: integer } }
+        - { name: actor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 200 } }
+      responses:
+        "200": { description: OK }
+  /api/v1/events/stream:
+    get: { summary: WebSocket com eventos novos, responses: { "101": { description: Upgrade } } }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string }, description: ID completo, prefixo do ID ou nome }
+  responses:
+    Error:
+      description: Erro
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: object, properties: { code: { type: string }, message: { type: string } } }
+  schemas:
+    Resources:
+      type: object
+      properties:
+        cpus: { type: number, example: 0.5 }
+        cpuWeight: { type: integer, example: 100 }
+        memoryMb: { type: integer, example: 256 }
+        pidsLimit: { type: integer, example: 128 }
+    CreateRequest:
+      type: object
+      required: [image]
+      properties:
+        name: { type: string }
+        image: { type: string, example: "alpine:3.20" }
+        cmd: { type: array, items: { type: string } }
+        entrypoint: { type: array, items: { type: string } }
+        env: { type: array, items: { type: string } }
+        workingDir: { type: string }
+        hostname: { type: string }
+        user: { type: string }
+        network: { type: string, enum: [bridge, host, none] }
+        ports:
+          type: array
+          items:
+            type: object
+            properties:
+              hostIp: { type: string }
+              hostPort: { type: integer }
+              containerPort: { type: integer }
+              protocol: { type: string, enum: [tcp, udp] }
+        mounts:
+          type: array
+          items: { type: object, properties: { source: { type: string }, target: { type: string }, readOnly: { type: boolean } } }
+        resources: { $ref: "#/components/schemas/Resources" }
+        restart: { type: object, properties: { name: { type: string, enum: ["no", on-failure, always] }, maxRetries: { type: integer } } }
+        readOnlyRootfs: { type: boolean }
+        autoRemove: { type: boolean }
+        privileged: { type: boolean }
+        start: { type: boolean, default: true }
+        pull: { type: boolean, default: true }
+    Container:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        image: { type: string }
+        state: { type: string, enum: [created, running, stopping, exited] }
+        pid: { type: integer }
+        ip: { type: string }
+        exitCode: { type: integer }
+        error: { type: string }
+        restartCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+    SystemInfo:
+      type: object
+      properties:
+        version: { type: string }
+        kernel: { type: string }
+        cgroupVersion: { type: integer }
+        storageDriver: { type: string }
+        cpus: { type: integer }
+        memoryBytes: { type: integer }

@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+internal/ui/dist/** linguist-generated=true
+web/package-lock.json linguist-generated=true
+docs/** linguist-documentation=true
