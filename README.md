@@ -271,6 +271,6 @@ O Silo depende de componentes com licenças próprias, que continuam valendo par
 
 ## Licença
 
-Copyright (©) 2026 Clara A. Portes
+Copyright (©) 2026 Clara Portes
 
 Este projeto é distribuído sob a licença [MIT](LICENSE). Você pode usar, copiar, modificar e redistribuir o código, inclusive para fins comerciais, desde que mantenha o aviso de copyright e o texto da licença.
