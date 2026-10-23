@@ -29,7 +29,16 @@ export default function Overview() {
       <header className="page-head">
         <div>
           <h1>Visão geral</h1>
-          <p className="muted">{i ? `${i.hostname} · kernel ${i.kernel} · cgroups v${i.cgroupVersion} · ${i.storageDriver}` : "Carregando..."}</p>
+          {i ? (
+            <dl className="meta">
+              <div><dt>Host</dt><dd>{i.hostname}</dd></div>
+              <div><dt>Kernel</dt><dd>{i.kernel}</dd></div>
+              <div><dt>Cgroups</dt><dd>v{i.cgroupVersion}</dd></div>
+              <div><dt>Armazenamento</dt><dd>{i.storageDriver}</dd></div>
+            </dl>
+          ) : (
+            <p className="muted">Carregando...</p>
+          )}
         </div>
         <a className="btn primary" href="#/containers?novo=1">
           Novo container
@@ -74,7 +83,7 @@ export default function Overview() {
               {running.map((c) => {
                 const s = stats.data?.find((x) => x.id === c.id);
                 return (
-                  <tr key={c.id} className="clickable" onClick={() => (location.hash = `/containers/${c.id}`)}>
+                  <tr key={c.id} className="clickable row-running" onClick={() => (location.hash = `/containers/${c.id}`)}>
                     <td>
                       <strong>{c.name}</strong>
                       <div className="muted small">há {since(c.startedAt)}</div>

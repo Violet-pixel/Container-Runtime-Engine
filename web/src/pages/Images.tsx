@@ -76,7 +76,7 @@ export default function Images() {
             <div className="progress">
               <span className="small">
                 {progress.stage}
-                {progress.total ? ` · ${bytes(progress.cur)} de ${bytes(progress.total)}` : ""}
+                {progress.total ? `: ${bytes(progress.cur)} de ${bytes(progress.total)}` : ""}
               </span>
               <Meter value={progress.cur} max={progress.total || 1} />
             </div>

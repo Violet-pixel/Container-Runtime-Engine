@@ -17,7 +17,8 @@ const labels: Record<State, string> = { running: "Rodando", stopping: "Parando",
 
 export function StateBadge({ state, code }: { state: State; code?: number }) {
   const text = state === "exited" && code !== undefined ? `${labels[state]} (${code})` : labels[state];
-  return <span className={`badge badge-${state}`}>{text}</span>;
+  const failed = state === "exited" && !!code;
+  return <span className={`badge badge-${state}${failed ? " badge-failed" : ""}`}>{text}</span>;
 }
 
 export function Card({ title, children, actions }: { title?: string; children: ReactNode; actions?: ReactNode }) {
@@ -38,7 +39,7 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
   return (
     <div className="stat">
       <span className="stat-label">{label}</span>
-      <strong className="stat-value">{value}</strong>
+      <strong className={`stat-value${typeof value === "string" && value.length > 11 ? " long" : ""}`}>{value}</strong>
       {hint && <span className="stat-hint">{hint}</span>}
     </div>
   );

@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 type Config struct {
 	Root         string

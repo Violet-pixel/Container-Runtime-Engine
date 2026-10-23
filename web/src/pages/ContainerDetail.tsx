@@ -16,14 +16,16 @@ export default function ContainerDetail({ id }: { id: string }) {
   return (
     <div className="page">
       <a href="#/containers" className="back">← Containers</a>
-      <header className="page-head">
+      <header className={`page-head${running ? " head-running" : ""}`}>
         <div>
           <h1>
             {c.name} <StateBadge state={c.state} code={c.exitCode} />
           </h1>
-          <p className="muted mono">
-            {short(c.id)} · {c.image} · {c.command.join(" ")}
-          </p>
+          <dl className="meta">
+            <div><dt>ID</dt><dd>{short(c.id)}</dd></div>
+            <div><dt>Imagem</dt><dd>{c.image}</dd></div>
+            <div><dt>Comando</dt><dd>{c.command.join(" ")}</dd></div>
+          </dl>
           {c.error && <p className="error-text">{c.error}</p>}
         </div>
         <ContainerActions c={c} reload={reload} />
@@ -31,7 +33,7 @@ export default function ContainerDetail({ id }: { id: string }) {
       <div className="stats-row">
         <Stat label="PID no host" value={running ? c.pid : "–"} hint={running ? `iniciado há ${since(c.startedAt)}` : c.finishedAt ? `parou há ${since(c.finishedAt)}` : ""} />
         <Stat label="Rede" value={running && c.ip ? c.ip : c.spec.network} hint={(c.spec.ports ?? []).map((p) => `${p.hostPort}→${p.containerPort}/${p.protocol}`).join(", ")} />
-        <Stat label="Limites" value={limitsText(c.spec)} hint={`reinício: ${c.spec.restart.name}${c.restartCount ? ` · ${c.restartCount}x` : ""}`} />
+        <Stat label="Limites" value={limitsText(c.spec)} hint={`reinício: ${c.spec.restart.name}${c.restartCount ? `, ${c.restartCount}x` : ""}`} />
         <Stat label="Armazenamento" value={c.storage} hint={c.spec.readOnlyRootfs ? "raiz somente leitura" : "raiz gravável"} />
       </div>
       <div className="tabs">
@@ -131,16 +133,20 @@ function LiveStats({ id }: { id: string }) {
         <div className="metric-big">{s.cpuPercent.toFixed(1)}%</div>
         <Sparkline values={hist.map((h) => h.cpuPercent)} max={cpuMax} />
         <Meter value={s.cpuPercent} max={cpuMax} />
-        <p className="muted small">
-          Limite: {s.cpuLimit ? `${s.cpuLimit} núcleo(s)` : "sem limite"} · tempo total {(s.cgroup.cpuUsageUsec / 1e6).toFixed(1)} s · contido por {(s.cgroup.cpuThrottledUsec / 1e6).toFixed(1)} s
+        <p className="muted small limit-notes">
+          <span>Limite: {s.cpuLimit ? `${s.cpuLimit} núcleo(s)` : "sem limite"}</span>
+          <span>Tempo total: {(s.cgroup.cpuUsageUsec / 1e6).toFixed(1)} s</span>
+          <span>Contido por: {(s.cgroup.cpuThrottledUsec / 1e6).toFixed(1)} s</span>
         </p>
       </Card>
       <Card title="Memória">
         <div className="metric-big">{bytes(s.cgroup.memoryUsageBytes)}</div>
         <Sparkline values={hist.map((h) => h.cgroup.memoryUsageBytes)} max={s.cgroup.memoryLimitBytes || undefined} />
         <Meter value={s.memoryPercent} />
-        <p className="muted small">
-          Limite: {s.cgroup.memoryLimitBytes ? bytes(s.cgroup.memoryLimitBytes) : "sem limite"} · pico {bytes(s.cgroup.memoryPeakBytes)} · OOM: {s.cgroup.oomKills}
+        <p className="muted small limit-notes">
+          <span>Limite: {s.cgroup.memoryLimitBytes ? bytes(s.cgroup.memoryLimitBytes) : "sem limite"}</span>
+          <span>Pico: {bytes(s.cgroup.memoryPeakBytes)}</span>
+          <span>OOM: {s.cgroup.oomKills}</span>
         </p>
       </Card>
       <Card title="Processos">

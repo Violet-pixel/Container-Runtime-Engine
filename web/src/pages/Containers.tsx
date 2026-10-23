@@ -113,7 +113,7 @@ export default function Containers() {
         {list.length === 0 ? (
           <Empty>{data ? "Nenhum container encontrado." : "Carregando..."}</Empty>
         ) : (
-          <table className="table">
+          <table className="table table-stack">
             <thead>
               <tr>
                 <th>Nome</th>
@@ -127,7 +127,7 @@ export default function Containers() {
             </thead>
             <tbody>
               {list.map((c) => (
-                <tr key={c.id} className="clickable" onClick={() => (location.hash = `/containers/${c.id}`)}>
+                <tr key={c.id} className={`clickable row-${c.state}`} onClick={() => (location.hash = `/containers/${c.id}`)}>
                   <td>
                     <strong>{c.name}</strong>
                     <div className="muted small mono">{short(c.id)}</div>
@@ -182,7 +182,7 @@ export function limitsText(s: Spec) {
   if (r.cpus) parts.push(`${r.cpus} CPU`);
   if (r.memoryMb) parts.push(`${r.memoryMb} MB`);
   if (r.pidsLimit) parts.push(`${r.pidsLimit} proc.`);
-  return parts.length ? parts.join(" · ") : "sem limites";
+  return parts.length ? parts.join(", ") : "sem limites";
 }
 
 function lines(s: string) {
